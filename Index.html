@@ -1,0 +1,88 @@
+<!DOCTYPE <!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Uncertainty Calculator</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="tokenizer.js"></script>
+    <script src="rpn-parser.js"></script>
+
+    <style>
+
+    </style>
+
+    <script type="text/javascript">
+        let variableValues = {};
+        let variableUncertainties = {};
+
+        function update(updateVars = true) {
+                let tokens = parse($("#equation").val());
+                console.log(tokens);
+
+                if (updateVars) {
+                    let vars = [];
+
+                    for (let token of tokens) {
+                        if (token.type == "Variable" && !vars.includes(token.value)) {
+                            vars.push(token.value);
+                            variableValues[token.value] = variableValues[token.value] || 0;
+                            variableUncertainties[token.value] = variableUncertainties[token.value] || 0;
+                        }
+                    }
+
+                    $("#vars").empty();
+                    for (let varName of vars) {
+                        $("#vars").append(varName);
+                        $("#vars").append(
+                            $("<input>", { "id": "var"+varName, "type": "text", "data-var": varName }).on("input propertychange paste", function(){
+                                variableValues[$(this).attr("data-var")] = parseFloat($(this).val());
+                                update(false);
+                            }).val(variableValues[varName] || 0)
+                        );
+                        $("#vars").append(
+                            $("<input>", { "id": "unc"+varName, "type": "text", "data-var": varName }).on("input propertychange paste", function(){
+                                variableUncertainties[$(this).attr("data-var")] = parseFloat($(this).val());
+                                update(false);
+                            }).val(variableUncertainties[varName] || 0)
+                        );
+                        $("#vars").append($("<br>"));
+                    }
+                }
+
+                let result = evaluatePolish(parse($("#equation").val()), variableValues, variableUncertainties);
+
+                console.log(result);
+
+                if (result === NaN || result === undefined || result === null || result.val === undefined) {
+                    $("#result").text("NaN");
+                } else {
+                    $("#result").text(result.val + " ± " + result.unc);
+                }
+            }
+
+        function onload() {
+            /*
+            $("#calculateButton").on("click", function(){
+                let text = $("#equation").val();
+                console.log(text);
+
+                console.log(parse($("#equation").val()));
+
+                console.log(evaluatePolish(parse($("#equation").val()), variableValues, variableUncertainties));
+            });
+            */
+
+            $('#equation').on("input", update);
+        }
+    </script>
+</head>
+<body onload="onload()">
+    <input id="equation" type="text"></input>
+    <p>Result: <span id="result"></span></p>
+    <!--<button id="calculateButton">Calculate</button>-->
+    <div id="vars"></div>
+</body>
+</html>
